@@ -1,7 +1,9 @@
 asgiref==3.11.1
 certifi==2026.5.20
 charset-normalizer==3.4.7
+cloudinary==1.44.2
 Django==6.0.5
+django-cloudinary-storage==0.3.0
 django-cors-headers==4.9.0
 django-mail-templated==2.6.5
 djangorestframework==3.17.1
@@ -13,5 +15,6 @@ PyJWT==2.13.0
 pyotp==2.9.0
 python-dotenv==1.2.2
 requests==2.34.2
+six==1.17.0
 sqlparse==0.5.5
 urllib3==2.7.0
