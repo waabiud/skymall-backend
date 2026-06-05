@@ -5,7 +5,8 @@ from .models import Order, OrderItem, OrderStatusHistory
 class OrderItemSerializer(serializers.ModelSerializer):
     class Meta:
         model  = OrderItem
-        fields = ['id', 'product', 'product_name', 'product_slug', 'quantity', 'unit_price', 'subtotal']
+        fields = ['id', 'product', 'product_name', 'product_slug',
+                  'quantity', 'unit_price', 'subtotal']
 
 
 class OrderStatusHistorySerializer(serializers.ModelSerializer):
@@ -35,6 +36,6 @@ class CheckoutSerializer(serializers.Serializer):
     delivery_address = serializers.CharField()
     delivery_city    = serializers.CharField()
     delivery_phone   = serializers.CharField()
-    payment_method   = serializers.ChoiceField(choices=['mpesa', 'cash_on_delivery'])
+    payment_method   = serializers.ChoiceField(choices=['mpesa'])
     coupon_code      = serializers.CharField(required=False, allow_blank=True)
     notes            = serializers.CharField(required=False, allow_blank=True)

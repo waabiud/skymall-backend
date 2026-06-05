@@ -174,3 +174,10 @@ if not os.getenv('DATABASE_URL') and not os.getenv('DB_HOST', '').endswith('pyth
                 'NAME':   '/home/waabiud/skymall-backend/db.sqlite3',
             }
         }
+#SQLite on PythonAnywhere
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME':   '/home/waabiud/skymall-backend/db.sqlite3',
+    }
+}
