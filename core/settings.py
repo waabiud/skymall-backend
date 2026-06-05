@@ -164,3 +164,13 @@ CORS_ALLOWED_ORIGINS = [
     "https://your-skymall.vercel.app",
 ]
 CORS_ALLOW_ALL_ORIGINS = False
+
+# SQLite fallback for PythonAnywhere free tier
+if not os.getenv('DATABASE_URL') and not os.getenv('DB_HOST', '').endswith('pythonanywhere-services.com'):
+    if os.getenv('PYTHONANYWHERE', '') == 'true':
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.sqlite3',
+                'NAME':   '/home/waabiud/skymall-backend/db.sqlite3',
+            }
+        }
