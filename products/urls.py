@@ -17,6 +17,7 @@ urlpatterns = [
     path('manage/create/',               views.VendorProductCreateView.as_view(), name='product-create'),
     path('manage/<slug:slug>/',             views.VendorProductUpdateView.as_view(),   name='product-manage'),
     path('manage/<slug:slug>/images/',      views.ProductImageUploadView.as_view(),    name='product-image-upload'),
+    path('manage/<slug:slug>/images/',      views.ProductImageUploadView.as_view(),    name='product-image-upload'),
 
     # product list and detail — slug LAST
     path('<slug:slug>/',                 views.ProductDetailView.as_view(),       name='product-detail'),
