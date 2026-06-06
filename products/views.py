@@ -181,3 +181,33 @@ class RecentlyViewedView(generics.ListAPIView):
 
     def get_queryset(self):
         return RecentlyViewed.objects.filter(user=self.request.user)[:20]
+
+class ProductImageUploadView(APIView):
+    """Accept Cloudinary URL and save as ProductImage"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, slug):
+        product = get_object_or_404(Product, slug=slug, vendor=request.user)
+        image_url = request.data.get('image_url')
+
+        if not image_url:
+            return Response({'error': 'image_url is required'},
+                          status=status.HTTP_400_BAD_REQUEST)
+
+        # set previous primary images to non-primary
+        if request.data.get('is_primary', True):
+            product.images.update(is_primary=False)
+
+        img = ProductImage.objects.create(
+            product    = product,
+            image      = image_url,
+            alt_text   = request.data.get('alt_text', product.name),
+            is_primary = request.data.get('is_primary', True),
+            order      = product.images.count(),
+        )
+
+        return Response({
+            'id':        img.id,
+            'image':     str(img.image),
+            'is_primary':img.is_primary,
+        }, status=status.HTTP_201_CREATED)
