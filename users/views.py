@@ -8,6 +8,7 @@ from django.core.mail import send_mail
 from django.conf import settings
 from datetime import timedelta
 import random
+import string
 
 from .serializers import (
     RegisterSerializer, VerifyOTPSerializer, LoginSerializer,
@@ -106,9 +107,11 @@ class LoginView(APIView):
             user     = authenticate(request, email=email, password=password)
 
             if not user:
-                return Response({'error': 'Invalid email or password'}, status=status.HTTP_401_UNAUTHORIZED)
+                return Response({'error': 'Invalid email or password'},
+                              status=status.HTTP_401_UNAUTHORIZED)
             if not user.is_verified:
-                return Response({'error': 'Please verify your account first'}, status=status.HTTP_403_FORBIDDEN)
+                return Response({'error': 'Please verify your account first'},
+                              status=status.HTTP_403_FORBIDDEN)
 
             tokens = get_tokens_for_user(user)
             return Response({
@@ -159,7 +162,8 @@ class ChangePasswordView(APIView):
         if serializer.is_valid():
             user = request.user
             if not user.check_password(serializer.validated_data['old_password']):
-                return Response({'error': 'Old password is incorrect'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'error': 'Old password is incorrect'},
+                              status=status.HTTP_400_BAD_REQUEST)
             user.set_password(serializer.validated_data['new_password'])
             user.save()
             return Response({'message': 'Password changed successfully'})
@@ -177,3 +181,63 @@ class LogoutView(APIView):
             return Response({'message': 'Logged out successfully'})
         except Exception:
             return Response({'error': 'Invalid token'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class GoogleAuthView(APIView):
+    """Exchange Google access token for JWT"""
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        access_token = request.data.get('token')
+        email        = request.data.get('email')
+        name         = request.data.get('name', '')
+
+        if not access_token or not email:
+            return Response({'error': 'Token and email required'},
+                          status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            import requests as req
+            # verify token with Google
+            google_response = req.get(
+                'https://www.googleapis.com/oauth2/v3/userinfo',
+                headers={'Authorization': f'Bearer {access_token}'}
+            )
+
+            if google_response.status_code != 200:
+                return Response({'error': 'Invalid Google token'},
+                              status=status.HTTP_400_BAD_REQUEST)
+
+            google_data = google_response.json()
+            verified_email = google_data.get('email')
+
+            if verified_email != email:
+                return Response({'error': 'Email mismatch'},
+                              status=status.HTTP_400_BAD_REQUEST)
+
+            # get or create user
+            user, created = User.objects.get_or_create(
+                email=email,
+                defaults={
+                    'username': email.split('@')[0] + str(random.randint(100, 999)),
+                    'full_name': name or google_data.get('name', ''),
+                    'is_verified': True,
+                    'referral_code': ''.join(
+                        random.choices(string.ascii_uppercase + string.digits, k=8)
+                    ),
+                }
+            )
+
+            if created:
+                user.set_unusable_password()
+                user.save()
+
+            tokens = get_tokens_for_user(user)
+            return Response({
+                'message': 'Google login successful',
+                'user':    UserProfileSerializer(user).data,
+                **tokens
+            })
+
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
