@@ -241,3 +241,61 @@ class GoogleAuthView(APIView):
 
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class GoogleAuthView(APIView):
+    """Exchange Google token for JWT"""
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        token = request.data.get('token')
+        if not token:
+            return Response({'error': 'Token required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            import requests as req
+            # verify token with Google
+            google_response = req.get(
+                f'https://oauth2.googleapis.com/tokeninfo?id_token={token}'
+            )
+            google_data = google_response.json()
+
+            if 'error' in google_data:
+                return Response({'error': 'Invalid Google token'},
+                              status=status.HTTP_400_BAD_REQUEST)
+
+            email    = google_data.get('email')
+            name     = google_data.get('name', '')
+            picture  = google_data.get('picture', '')
+
+            if not email:
+                return Response({'error': 'Email not provided by Google'},
+                              status=status.HTTP_400_BAD_REQUEST)
+
+            # get or create user
+            import random, string
+            user, created = User.objects.get_or_create(
+                email=email,
+                defaults={
+                    'username':    email.split('@')[0] + str(random.randint(100, 999)),
+                    'full_name':   name,
+                    'is_verified': True,
+                    'referral_code': ''.join(
+                        random.choices(string.ascii_uppercase + string.digits, k=8)
+                    ),
+                }
+            )
+
+            if created:
+                user.set_unusable_password()
+                user.save()
+
+            tokens = get_tokens_for_user(user)
+            return Response({
+                'message': 'Google login successful',
+                'user':    UserProfileSerializer(user).data,
+                **tokens
+            })
+
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
